@@ -1,0 +1,379 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Mini SIEM Dashboard</title>
+
+<style>
+
+body{
+background:#0f172a;
+color:white;
+font-family:Arial;
+margin:40px;
+}
+
+h1{
+color:#22c55e;
+}
+
+h2{
+margin-top:40px;
+}
+
+table{
+width:100%;
+border-collapse:collapse;
+margin-top:20px;
+}
+
+th,td{
+border:1px solid #334155;
+padding:10px;
+text-align:left;
+}
+
+th{
+background:#1e293b;
+}
+
+.card{
+background:#1e293b;
+padding:20px;
+border-radius:10px;
+width:200px;
+text-align:center;
+}
+
+.stats{
+display:flex;
+gap:20px;
+margin-bottom:30px;
+}
+
+.intel{
+display:flex;
+gap:20px;
+margin-bottom:30px;
+}
+
+canvas{
+background:#1e293b;
+padding:20px;
+border-radius:10px;
+margin-top:20px;
+}
+
+.feed{
+background:#1e293b;
+padding:20px;
+border-radius:10px;
+max-height:200px;
+overflow-y:auto;
+}
+
+</style>
+
+</head>
+
+<body>
+
+<h1>Mini SIEM Dashboard</h1>
+
+<a href="/logout" style="color:#a78bfa;">Logout</a>
+
+
+<!-- Threat Level -->
+
+<h2>Network Threat Level</h2>
+
+{% if threat_level == "LOW" %}
+<p style="color:#22c55e;font-size:22px;">LOW 🟢</p>
+
+{% elif threat_level == "MEDIUM" %}
+<p style="color:#f59e0b;font-size:22px;">MEDIUM 🟠</p>
+
+{% else %}
+<p style="color:#ef4444;font-size:22px;">HIGH 🔴</p>
+{% endif %}
+
+
+<hr>
+
+<!-- Attack Intelligence -->
+
+<h2>Attack Intelligence</h2>
+
+<div class="intel">
+
+<div class="card">
+<h3>Top Attacker</h3>
+<p>{{ top_attacker_ip }}</p>
+</div>
+
+<div class="card">
+<h3>Most Targeted Port</h3>
+<p>{{ top_port_value }}</p>
+</div>
+
+<div class="card">
+<h3>Blocked Attackers</h3>
+<p>{{ blocked_count }}</p>
+</div>
+
+<div class="card">
+<h3>Attack Frequency</h3>
+<p>{{ attack_frequency }} / min</p>
+</div>
+
+</div>
+
+
+<hr>
+
+<!-- Statistics -->
+
+<h2>Statistics</h2>
+
+<div class="stats">
+
+<div class="card">
+<h3>Total Logs</h3>
+<p>{{ total_logs }}</p>
+</div>
+
+<div class="card">
+<h3>Total Alerts</h3>
+<p>{{ total_alerts }}</p>
+</div>
+
+<div class="card">
+<h3>Failed Logins</h3>
+<p>{{ failed_count }}</p>
+</div>
+
+<div class="card">
+<h3>Successful Logins</h3>
+<p>{{ success_count }}</p>
+</div>
+
+</div>
+
+
+<hr>
+
+<!-- Logs -->
+
+<h2>Log Records</h2>
+
+<table>
+
+<tr>
+<th>ID</th>
+<th>Event Type</th>
+<th>IP Address</th>
+<th>Port</th>
+<th>Timestamp</th>
+</tr>
+
+{% for log in logs %}
+
+<tr>
+<td>{{ log[0] }}</td>
+<td>{{ log[1] }}</td>
+<td>{{ log[2] }}</td>
+<td>{{ log[3] }}</td>
+<td>{{ log[4] }}</td>
+</tr>
+
+{% endfor %}
+
+</table>
+
+
+<hr>
+
+<!-- Alerts -->
+
+<h2>Alerts</h2>
+
+<table>
+
+<tr>
+<th>ID</th>
+<th>IP Address</th>
+<th>Alert Type</th>
+<th>Severity</th>
+<th>Timestamp</th>
+</tr>
+
+{% for alert in alerts %}
+
+<tr>
+<td>{{ alert[0] }}</td>
+<td>{{ alert[1] }}</td>
+<td>{{ alert[2] }}</td>
+<td>{{ alert[3] }}</td>
+<td>{{ alert[4] }}</td>
+</tr>
+
+{% endfor %}
+
+</table>
+
+
+<hr>
+
+<!-- Blocked IPs -->
+
+<h2>Blocked IPs</h2>
+
+<table>
+
+<tr>
+<th>ID</th>
+<th>IP Address</th>
+<th>Reason</th>
+<th>Timestamp</th>
+</tr>
+
+{% for ip in blocked_ips %}
+
+<tr>
+<td>{{ ip[0] }}</td>
+<td>{{ ip[1] }}</td>
+<td>{{ ip[2] }}</td>
+<td>{{ ip[3] }}</td>
+</tr>
+
+{% endfor %}
+
+</table>
+
+
+<hr>
+
+<!-- Live Attack Feed -->
+
+<h2>Live Attack Feed</h2>
+
+<div class="feed">
+
+{% for alert in recent_alerts %}
+
+<p>
+[{{ alert[2] }}]
+<strong>{{ alert[0] }}</strong>
+detected from
+<span style="color:#f87171">{{ alert[1] }}</span>
+</p>
+
+{% endfor %}
+
+</div>
+
+
+<hr>
+
+<!-- Charts -->
+
+<h2>Attack Overview</h2>
+
+<canvas id="attackChart"></canvas>
+
+
+<h2>Top Attacking IPs</h2>
+
+<canvas id="ipChart"></canvas>
+
+
+<h2>Most Targeted Ports</h2>
+
+<canvas id="portChart"></canvas>
+
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<script>
+
+document.addEventListener("DOMContentLoaded", function() {
+
+var attackCtx = document.getElementById('attackChart');
+
+new Chart(attackCtx,{
+type:'bar',
+data:{
+labels:['Failed Logins','Successful Logins'],
+datasets:[{
+label:'Login Activity',
+data:[{{ failed_count }},{{ success_count }}],
+backgroundColor:['red','green']
+}]
+}
+});
+
+
+var ipLabels=[
+{% for ip in top_ips %}
+"{{ ip[0] }}",
+{% endfor %}
+];
+
+var ipCounts=[
+{% for ip in top_ips %}
+{{ ip[1] }},
+{% endfor %}
+];
+
+var ipCtx=document.getElementById('ipChart');
+
+new Chart(ipCtx,{
+type:'bar',
+data:{
+labels:ipLabels,
+datasets:[{
+label:'Attack Count',
+data:ipCounts,
+backgroundColor:'orange'
+}]
+}
+});
+
+
+var portLabels=[
+{% for port in top_ports %}
+"{{ port[0] }}",
+{% endfor %}
+];
+
+var portCounts=[
+{% for port in top_ports %}
+{{ port[1] }},
+{% endfor %}
+];
+
+var portCtx=document.getElementById('portChart');
+
+new Chart(portCtx,{
+type:'bar',
+data:{
+labels:portLabels,
+datasets:[{
+label:'Port Attacks',
+data:portCounts,
+backgroundColor:'#3b82f6'
+}]
+}
+});
+
+});
+
+
+// Auto refresh every 5 seconds
+setInterval(function(){
+location.reload();
+},5000);
+
+</script>
+
+</body>
+</html>
